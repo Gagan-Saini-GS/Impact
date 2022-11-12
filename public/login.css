@@ -1,0 +1,112 @@
+.login-container {
+  height: 100vh;
+  color: #fffaff;
+  background-image: linear-gradient(#0f0c29, #302b63, #24243e);
+  display: flex;
+  align-items: center;
+}
+
+.login-section,
+.signin-section {
+  display: flex;
+  width: 70%;
+  border: 2px solid #fffaff;
+  border-radius: 10px;
+  margin: 0px auto;
+}
+
+.login-form,
+.signin-form {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  width: 50%;
+  /* animation-name: moveLeft;
+  animation-duration: 3s;
+  animation-fill-mode: forwards; */
+}
+
+.login-form-item {
+  width: 80%;
+  margin-bottom: 1rem;
+}
+
+.login-form-item input {
+  width: 100%;
+  font-size: 1.5rem;
+  padding: 0.25rem;
+  border: 2px solid #fffaff;
+  border-radius: 5px;
+}
+
+.login-form-item p {
+  font-size: 2rem;
+}
+
+.login-btn {
+  background: transparent;
+  color: #fffaff;
+  font-size: 1.5rem;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  border: 2px solid #fffaff;
+  border-radius: 5px;
+  transition: all 0.25s;
+}
+
+.login-btn:hover {
+  border: 2px solid #0f0c29;
+  background-color: #fffaff;
+  color: #0f0c29;
+}
+
+.login-side-image,
+.sign-side-image {
+  width: 50%;
+  position: relative;
+}
+
+.login-side-image img {
+  width: 100%;
+  height: 100.25%;
+  border-radius: 8px;
+  position: relative;
+  top: -1px;
+  left: 1px;
+}
+
+.leftAnimation {
+  animation-name: moveLeft;
+  animation-duration: 3s;
+  animation-fill-mode: forwards;
+}
+
+.rightAnimation {
+  animation-name: moveRight;
+  animation-duration: 3s;
+  animation-fill-mode: forwards;
+}
+
+/* ANIMATIONS */
+
+@keyframes moveRight {
+  0% {
+    left: 0px;
+  }
+
+  100% {
+    left: 539px;
+  }
+}
+
+@keyframes moveLeft {
+  0% {
+    right: 0px;
+  }
+
+  100% {
+    right: 539px;
+  }
+}
