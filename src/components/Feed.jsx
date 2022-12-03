@@ -1,39 +1,23 @@
 import React, { useState, useEffect } from "react";
 import CreatePost from "./CreatePost";
-import Postform from "./Postform";
 
 function Feed(props) {
-  const [allPosts, setAllPosts] = useState([{}]);
-
   useEffect(() => {
     fetch("/getAllPosts")
       .then((response) => response.json())
       .then((data) => {
         // console.log(data);
-        setAllPosts(data);
+        props.setPosts(data);
       });
   }, []);
 
-  function getPosts() {
-    fetch("/getAllPosts")
-      .then((response) => response.json())
-      .then((data) => {
-        // console.log(data);
-        setAllPosts(data);
-      })
-      .then(() => {
-        props.account();
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }
-  // I remove [] from "},[]);" last line to fetch every time when its updated..
+  // console.log(props.allPosts);
 
   return (
     <div className="feed-container">
-      {typeof allPosts.posts !== "undefined" &&
-        allPosts.posts.map((post, postIndex) => {
+      {typeof props.allPosts.posts !== "undefined" &&
+        props.allPosts.posts.map((post, postIndex) => {
+          // console.log(post.postContent);
           return (
             <CreatePost
               key={postIndex}
@@ -47,19 +31,6 @@ function Feed(props) {
             />
           );
         })}
-      {/* {postDetails.map((item, index) => {
-        return (
-          <CreatePost
-            key={index}
-            id={item.id}
-            src={item.src}
-            username={item.username}
-            userintro={item.userintro}
-            postContent={item.postContent}
-            postSrc={item.postSrc}
-          />
-        );
-      })} */}
     </div>
   );
 }

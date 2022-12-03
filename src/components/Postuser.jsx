@@ -3,10 +3,11 @@ import { useState } from "react";
 import User from "./User";
 
 function Postuser(props) {
-  const startingPostContent = props.postContent;
+  let startingPostContent = props.postContent;
   const temp = props.postContent.slice(0, 200);
   const [slicedPostContent, setContent] = useState(temp);
 
+  // console.log(slicedPostContent);
   const [isReadMore, setReadMore] = useState(false);
 
   function expendPostContent() {
@@ -26,9 +27,9 @@ function Postuser(props) {
         userintro={props.userintro}
       />
       <div className="post-content">
-        {/* {props.postContent} */}
         {/* {props.postContent.slice(0, 200)} */}
-        {slicedPostContent}
+        {/* {slicedPostContent} */}
+        {props.postContent}
         {startingPostContent.length >= 200 && (
           <p className="read-more-link" onClick={expendPostContent}>
             {isReadMore ? "... read less" : "... read more"}

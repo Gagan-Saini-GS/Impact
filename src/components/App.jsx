@@ -8,6 +8,12 @@ import User from "./User";
 import Founduser from "./FoundUser";
 import InviteCard from "./InviteCard";
 import ReportBug from "./ReportBug";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 function App() {
   const [showFeed, setShowFeed] = useState(true);
@@ -17,27 +23,24 @@ function App() {
   const [checkInvitations, setCheckInvitations] = useState(false);
   const [checkPendingRequest, setCheckPendingRequest] = useState(false);
   const [currentUser, setCurrUser] = useState({});
-  const [searchedUsers, setSearchedUsers] = useState([]);
-  const [invitations, setInvitations] = useState([]);
-  const [connections, setConnections] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
+  let [searchedUsers, setSearchedUsers] = useState([]);
+  let [invitations, setInvitations] = useState([]);
+  let [connections, setConnections] = useState([]);
+  let [pendingRequests, setPendingRequests] = useState([]);
   const [showBugPage, setShowBugPage] = useState(false);
+  const [accessToken, setAccessToken] = useState("");
+  let [allPosts, setAllPosts] = useState([]);
 
   useEffect(() => {
-    fetch("/isAccountActive")
-      .then((response) => response.json())
-      .then((data) => {
-        setLogin(data.haveAccount);
-      });
-  }, []);
+    const accessToken = localStorage.getItem("accessToken");
+    // console.log(checkAccessToken);
 
-  function account() {
-    fetch("/isAccountActive")
-      .then((response) => response.json())
-      .then((data) => {
-        setLogin(data.haveAccount);
-      });
-  }
+    if (accessToken === null) {
+      setLogin(false);
+    } else {
+      setLogin(true);
+    }
+  }, []);
 
   function handleDashboard() {
     setShowFeed(false);
@@ -47,6 +50,7 @@ function App() {
     setCheckPendingRequest(false);
     setShowBugPage(false);
     getUserDetails();
+    console.log("hello handing dashboard");
   }
 
   function goToHome() {
@@ -58,82 +62,81 @@ function App() {
   }
 
   const [user, setUser] = useState({});
-  // userName: "",
-  // userEmail: "",
-  // userIntro: "",
-  // userProfileImage: "",
 
   function getUserDetails() {
-    fetch("/currentUser")
+    // console.log(JSON.parse(localStorage.getItem("accessToken")).accessToken);
+    // console.log(accessToken);
+    fetch("/currentUser", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+        accessToken: localStorage.getItem("accessToken"),
+      },
+    })
       .then((response) => response.json())
       .then((data) => {
-        // console.log(data.ans);
+        console.log(data.ans);
         setUser(data.ans);
       });
   }
 
   useEffect(() => {
-    getUserDetails();
+    if (isLogin) {
+      getUserDetails();
+    }
   }, []);
 
   function logout() {
-    fetch("/logout")
-      .then((response) => response.json())
-      .then((data) => {
-        setLogin(data.haveAccount);
-      });
+    localStorage.removeItem("accessToken");
+    setLogin(false);
   }
 
   function foundConnections(arr) {
     setFoundUsers(true);
     setShowFeed(false);
-
     setSearchedUsers(arr);
-    // console.log(arr);
-  }
-
-  function showUserDetails(curr) {
-    // console.log(curr);
-    setCurrUser(curr);
+    if (arr.length !== 0) {
+      setCurrUser(setSearchedUsers[0]);
+    }
   }
 
   function showConnections(arr) {
+    // console.log("Hello from function");
     setShowFeed(false);
     setFoundUsers(false);
     setCheckConnections(true);
     setCheckInvitations(false);
     setCheckPendingRequest(false);
     setShowBugPage(false);
-    // console.log(arr);
+    connections = arr;
     setConnections(arr);
   }
 
   function showInvitations(arr) {
-    // console.log(arr);
     setShowFeed(false);
     setFoundUsers(false);
     setCheckConnections(false);
     setCheckInvitations(true);
     setShowBugPage(false);
     setCheckPendingRequest(false);
+    invitations = arr;
     setInvitations(arr);
+    console.log(invitations);
   }
 
   function showPendingRequest(arr) {
-    // console.log(arr);
     setShowFeed(false);
     setFoundUsers(false);
     setCheckConnections(false);
     setCheckInvitations(false);
     setShowBugPage(false);
     setCheckPendingRequest(true);
+    pendingRequests = arr;
     setPendingRequests(arr);
-
-    // console.log(pendingRequests.length);
   }
 
   function reportBug() {
-    console.log("Reporting bug in impact.");
     setShowFeed(false);
     setFoundUsers(false);
     setCheckConnections(false);
@@ -142,131 +145,304 @@ function App() {
     setShowBugPage(true);
   }
 
+  function passAccessToken(token) {
+    setAccessToken(token);
+    if (token !== null && token !== undefined) {
+      setLogin(true);
+    }
+  }
+
+  function setPosts(data) {
+    // console.log("HELLO I AM CALLED!!");
+    allPosts = data;
+    setAllPosts(data);
+    // console.log(allPosts);
+
+    // allPosts.posts.map((item, index) => {
+    //   console.log(item);
+    // });
+  }
+
   return (
-    <div>
-      {!isLogin ? (
-        <Login login={login} account={account} />
-      ) : (
-        <div className="app-container">
-          <Navbar
-            handleDashboard={handleDashboard}
-            goToHome={goToHome}
-            logout={logout}
-            foundConnections={foundConnections}
-            showConnections={showConnections}
-            showInvitations={showInvitations}
-            showPendingRequest={showPendingRequest}
-            reportBug={reportBug}
+    <Router>
+      <div>
+        {!isLogin ? (
+          <Login
+            login={login}
+            // account={account}
+            passAccessToken={passAccessToken}
           />
-          {showFeed ? (
-            <Feed account={account} />
-          ) : foundUsers ? (
-            <div className="found-users-main-container">
-              <div className="found-users-container">
-                {searchedUsers.length !== 0 &&
-                  searchedUsers.map((item, index) => {
-                    return (
-                      <div
-                        onClick={() => {
-                          const temp = {
-                            imgSrc: item.userProfileImage,
-                            name: item.userName,
-                            intro: item.userIntro,
-                            email: item.userEmail,
-                          };
-                          showUserDetails(temp);
-                        }}
-                        className="found-user"
-                      >
-                        <User
-                          key={index}
-                          src={item.userProfileImage}
-                          username={item.userName}
-                          userintro={item.userIntro}
-                          // useremail={item.userEmail}
+        ) : (
+          <div className="app-container">
+            <Navbar
+              handleDashboard={handleDashboard}
+              goToHome={goToHome}
+              logout={logout}
+              foundConnections={foundConnections}
+              showConnections={showConnections}
+              showInvitations={showInvitations}
+              showPendingRequest={showPendingRequest}
+              reportBug={reportBug}
+            />
+
+            <Routes>
+              <Route path="/" element={<Navigate to="/feed" />} />
+              <Route
+                path="/feed"
+                element={[
+                  <Feed allPosts={allPosts} setPosts={setPosts} />,
+                  <Postform accessToken={accessToken} setPosts={setPosts} />,
+                ]}
+              />
+              <Route
+                path="/dashboard"
+                element={<Dashboard userDetails={user} />}
+              />
+              <Route
+                path="/find-users"
+                element={
+                  <div className="found-users-main-container">
+                    <div className="found-users-container">
+                      {searchedUsers.length !== 0 &&
+                        searchedUsers.map((item, index) => {
+                          // console.log(searchedUsers[0]);
+                          // setCurrUser(searchedUsers[0]);
+                          return (
+                            <div
+                              onClick={() => {
+                                const temp = {
+                                  imgSrc: item.userProfileImage,
+                                  name: item.userName,
+                                  intro: item.userIntro,
+                                  email: item.userEmail,
+                                };
+                                setCurrUser(temp);
+                              }}
+                              className="found-user"
+                            >
+                              <User
+                                key={index}
+                                src={item.userProfileImage}
+                                username={item.userName}
+                                userintro={item.userIntro}
+                              />
+                            </div>
+                          );
+                        })}
+                    </div>
+                    <div className="user-details-container">
+                      {typeof currentUser !== "undefined" && (
+                        <Founduser
+                          userProfileImage={currentUser.imgSrc}
+                          userName={currentUser.name}
+                          userIntro={currentUser.intro}
+                          userEmail={currentUser.email}
                         />
-                      </div>
-                    );
-                  })}
-              </div>
-              <div className="user-details-container">
-                {typeof currentUser !== "undefined" && (
-                  <Founduser
-                    userProfileImage={currentUser.imgSrc}
-                    userName={currentUser.name}
-                    userIntro={currentUser.intro}
-                    userEmail={currentUser.email}
-                  />
-                )}
-              </div>
-            </div>
-          ) : checkInvitations ? (
-            <div className="box">
-              {invitations.length !== 0 ? (
-                invitations.map((item, index) => {
-                  console.log(item);
-                  return (
-                    <InviteCard
-                      key={index}
-                      imgSrc={item.userProfileImage}
-                      userName={item.userName}
-                      userEmail={item.userEmail}
-                      userIntro={item.userIntro}
-                      type="invitation"
-                    />
-                  );
-                })
+                      )}
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/connections"
+                element={
+                  <div className="box">
+                    {connections.length !== 0 ? (
+                      connections.map((item, index) => {
+                        return (
+                          <InviteCard
+                            key={index}
+                            imgSrc={item.userProfileImage}
+                            userName={item.userName}
+                            userEmail={item.userEmail}
+                            userIntro={item.userIntro}
+                            type="connection"
+                          />
+                        );
+                      })
+                    ) : (
+                      <h1>No Connections !</h1>
+                    )}
+                  </div>
+                }
+              />
+              <Route
+                path="/pending-requests"
+                element={
+                  <div className="box">
+                    {pendingRequests.length !== 0 ? (
+                      pendingRequests.map((item, index) => {
+                        return (
+                          <InviteCard
+                            key={index}
+                            imgSrc={item.userProfileImage}
+                            userName={item.userName}
+                            userEmail={item.userEmail}
+                            userIntro={item.userIntro}
+                            type="request"
+                          />
+                        );
+                      })
+                    ) : (
+                      <h1>No Pending Request !</h1>
+                    )}
+                  </div>
+                }
+              />
+              <Route
+                path="/invitations"
+                element={
+                  <div className="box">
+                    {invitations.length !== 0 ? (
+                      invitations.map((item, index) => {
+                        console.log(item);
+                        return (
+                          <InviteCard
+                            key={index}
+                            imgSrc={item.userProfileImage}
+                            userName={item.userName}
+                            userEmail={item.userEmail}
+                            userIntro={item.userIntro}
+                            type="invitation"
+                          />
+                        );
+                      })
+                    ) : (
+                      <h1>No Invitations !</h1>
+                    )}
+                  </div>
+                }
+              />
+              <Route path="/report-bug-page" element={<ReportBug />} />
+            </Routes>
+
+            {/* {showFeed ? (
+                <Route
+                  path="/feed"
+                  element={[
+                    <Feed allPosts={allPosts} setPosts={setPosts} />,
+                    <Postform accessToken={accessToken} setPosts={setPosts} />,
+                  ]}
+                />
+              ) : foundUsers ? (
+                <div className="found-users-main-container">
+                  <div className="found-users-container">
+                    {searchedUsers.length !== 0 &&
+                      searchedUsers.map((item, index) => {
+                        // console.log(searchedUsers[0]);
+                        // setCurrUser(searchedUsers[0]);
+                        return (
+                          <div
+                            onClick={() => {
+                              const temp = {
+                                imgSrc: item.userProfileImage,
+                                name: item.userName,
+                                intro: item.userIntro,
+                                email: item.userEmail,
+                              };
+                              setCurrUser(temp);
+                            }}
+                            className="found-user"
+                          >
+                            <User
+                              key={index}
+                              src={item.userProfileImage}
+                              username={item.userName}
+                              userintro={item.userIntro}
+                            />
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <div className="user-details-container">
+                    {typeof currentUser !== "undefined" && (
+                      <Founduser
+                        userProfileImage={currentUser.imgSrc}
+                        userName={currentUser.name}
+                        userIntro={currentUser.intro}
+                        userEmail={currentUser.email}
+                      />
+                    )}
+                  </div>
+                </div>
+              ) : checkInvitations ? (
+                <div className="box">
+                  {invitations.length !== 0 ? (
+                    invitations.map((item, index) => {
+                      console.log(item);
+                      return (
+                        <InviteCard
+                          key={index}
+                          imgSrc={item.userProfileImage}
+                          userName={item.userName}
+                          userEmail={item.userEmail}
+                          userIntro={item.userIntro}
+                          type="invitation"
+                        />
+                      );
+                    })
+                  ) : (
+                    <h1>No Invitations !</h1>
+                  )}
+                </div>
+              ) : checkPendingRequest ? (
+                <div className="box">
+                  {pendingRequests.length !== 0 ? (
+                    pendingRequests.map((item, index) => {
+                      return (
+                        <InviteCard
+                          key={index}
+                          imgSrc={item.userProfileImage}
+                          userName={item.userName}
+                          userEmail={item.userEmail}
+                          userIntro={item.userIntro}
+                          type="request"
+                        />
+                      );
+                    })
+                  ) : (
+                    <h1>No Pending Request !</h1>
+                  )}
+                </div>
+              ) : checkConnections ? (
+                <div className="box">
+                  {connections.length !== 0 ? (
+                    connections.map((item, index) => {
+                      return (
+                        <InviteCard
+                          key={index}
+                          imgSrc={item.userProfileImage}
+                          userName={item.userName}
+                          userEmail={item.userEmail}
+                          userIntro={item.userIntro}
+                          type="connection"
+                        />
+                      );
+                    })
+                  ) : (
+                    <h1>No Connections !</h1>
+                  )}
+                </div>
+              ) : showBugPage ? (
+                <ReportBug />
               ) : (
-                <h1>No Invitations !</h1>
+                <Route
+                  path="/dashboard"
+                  element={<Dashboard userDetails={user} />}
+                />
               )}
-            </div>
-          ) : checkPendingRequest ? (
-            <div className="box">
-              {pendingRequests.length !== 0 ? (
-                pendingRequests.map((item, index) => {
-                  return (
-                    <InviteCard
-                      key={index}
-                      imgSrc={item.userProfileImage}
-                      userName={item.userName}
-                      userEmail={item.userEmail}
-                      userIntro={item.userIntro}
-                      type="request"
-                    />
-                  );
-                })
-              ) : (
-                <h1>No Pending Request !</h1>
-              )}
-            </div>
-          ) : checkConnections ? (
-            <div className="box">
-              {connections.length !== 0 ? (
-                connections.map((item, index) => {
-                  return (
-                    <InviteCard
-                      key={index}
-                      imgSrc={item.userProfileImage}
-                      userName={item.userName}
-                      userEmail={item.userEmail}
-                      userIntro={item.userIntro}
-                      type="connection"
-                    />
-                  );
-                })
-              ) : (
-                <h1>No Connections !</h1>
-              )}
-            </div>
-          ) : showBugPage ? (
-            <ReportBug />
-          ) : (
-            <Dashboard userDetails={user} />
-          )}
-          {showFeed && <Postform account={account} />}
-        </div>
-      )}
-    </div>
+              {showFeed && (
+                <Route
+                  path="/feed"
+                  element={
+                    <Postform accessToken={accessToken} setPosts={setPosts} />
+                  }
+                />
+              )} */}
+          </div>
+        )}
+      </div>
+    </Router>
   );
 }
 

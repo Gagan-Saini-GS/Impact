@@ -1,8 +1,5 @@
 import React, { useState } from "react";
-import Post from "./Post";
-import User from "./User";
 import Postuser from "./Postuser";
-import postDetails from "../postDetails";
 
 function CreatePost(props) {
   const [isLiked, setLike] = useState(false);
@@ -19,6 +16,7 @@ function CreatePost(props) {
       }),
 
       headers: {
+        accessToken: localStorage.getItem("accessToken"),
         "Content-type": "application/json; charset=UTF-8",
       },
     })
@@ -172,6 +170,7 @@ function CreatePost(props) {
       <div className="show-comment-section">
         {showComments &&
           addComment.map((item, index) => {
+            console.log(addComment);
             return (
               <div className="posted-comment" key={index}>
                 <h4>{item.postingUserName}</h4>

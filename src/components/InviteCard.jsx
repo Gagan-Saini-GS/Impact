@@ -10,7 +10,7 @@ function InviteCard(props) {
   };
 
   function acceptConnectionRequest() {
-    console.log(user.userName + " connection request accepted !!");
+    // console.log(user.userName + " connection request accepted !!");
     // Post on /acceptConnectionRequest and then
     // add this user in connection array of currentUser (backend) and
     // pop this user from his (currentUser , backend).
@@ -23,6 +23,7 @@ function InviteCard(props) {
 
       headers: {
         "Content-type": "application/json; charset=UTF-8",
+        accessToken: localStorage.getItem("accessToken"),
       },
     })
       .then((response) => response.json())
@@ -44,6 +45,7 @@ function InviteCard(props) {
 
       headers: {
         "Content-type": "application/json; charset=UTF-8",
+        accessToken: localStorage.getItem("accessToken"),
       },
     })
       .then((response) => response.json())

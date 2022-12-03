@@ -3,6 +3,66 @@ import { useState } from "react";
 
 function Login(props) {
   const [createAccount, setCreateAccount] = useState(false);
+  let [accessToken, setAccessToken] = useState("");
+  // console.log(accessToken);
+
+  function signIn() {
+    const userName = document.querySelector(".userName").value;
+    const userEmail = document.querySelector(".signin-userEmail").value;
+    const password = document.querySelector(".signin-password").value;
+
+    // console.log(userName, userEmail, password);
+    fetch("/signIn", {
+      method: "POST",
+      body: JSON.stringify({
+        userName: userName,
+        userEmail: userEmail,
+        password: password,
+      }),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // console.log(data);
+        accessToken = data;
+        setAccessToken(data);
+        // console.log(accessToken);
+        if (accessToken !== "") {
+          localStorage.setItem("accessToken", JSON.stringify(accessToken));
+          props.passAccessToken(accessToken);
+          props.account();
+        }
+      });
+  }
+
+  function login() {
+    const userEmail = document.querySelector(".login-userEmail").value;
+    const password = document.querySelector(".login-password").value;
+
+    // console.log(userName, userEmail, password);
+    fetch("/login", {
+      method: "POST",
+      body: JSON.stringify({
+        userEmail: userEmail,
+        password: password,
+      }),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        accessToken = data;
+        setAccessToken(data);
+        if (accessToken !== "") {
+          localStorage.setItem("accessToken", JSON.stringify(accessToken));
+          props.passAccessToken(accessToken);
+          // props.account();
+        }
+      });
+  }
 
   return (
     <div className="login-container">
@@ -12,15 +72,18 @@ function Login(props) {
             className="login-form"
             action="/login"
             method="post"
-            onSubmit={() => {
-              console.log("On Submit called");
-              props.account();
-              console.log("On Submit ends");
+            onSubmit={(event) => {
+              event.preventDefault();
             }}
           >
             <div className="login-form-item">
               <p>Email</p>
-              <input type="email" name="userEmail" placeholder="Email" />
+              <input
+                type="email"
+                name="userEmail"
+                placeholder="Email"
+                className="login-userEmail"
+              />
             </div>
             <div className="login-form-item">
               <p>Password</p>
@@ -29,13 +92,13 @@ function Login(props) {
                 name="password"
                 id=""
                 placeholder="Password"
+                className="login-password"
               />
             </div>
             <div className="login-form-item">
               <button
                 type="submit"
-                // onClick={() => {
-                // }}
+                onClick={login}
                 // onSubmit={(event) => {
                 //   event.preventDefault();
                 //   // fetch("/login").then((data)=>{})
@@ -61,14 +124,31 @@ function Login(props) {
         </div>
       ) : (
         <div className="signin-section">
-          <form className="signin-form" action="/signIn" method="post">
+          <form
+            className="signin-form"
+            action="/signIn"
+            method="post"
+            onSubmit={(event) => {
+              event.preventDefault();
+            }}
+          >
             <div className="login-form-item">
               <p>Username</p>
-              <input type="text" name="userName" placeholder="Username" />
+              <input
+                type="text"
+                name="userName"
+                placeholder="Username"
+                className="userName"
+              />
             </div>
             <div className="login-form-item">
               <p>Email</p>
-              <input type="email" name="userEmail" placeholder="Email" />
+              <input
+                type="email"
+                name="userEmail"
+                placeholder="Email"
+                className="signin-userEmail"
+              />
             </div>
             <div className="login-form-item">
               <p>Password</p>
@@ -77,24 +157,17 @@ function Login(props) {
                 name="password"
                 id=""
                 placeholder="Password"
+                className="signin-password"
               />
             </div>
-            {/* <div className="login-form-item">
-              <p>Confirm Password</p>
-              <input
-                type="password"
-                name="confirmPassword"
-                id=""
-                placeholder="Confirm Password"
-              />
-            </div> */}
             <div className="login-form-item">
               <button
                 type="submit"
                 className="login-btn"
-                onClick={() => {
-                  props.account();
-                }}
+                onClick={signIn}
+                // accessToken = data.accessToken;
+                // console.log(accessToken);
+                // props.account();
               >
                 Sign-In
               </button>

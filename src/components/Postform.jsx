@@ -7,14 +7,65 @@ function Postform(props) {
   const [isPost, setIsPost] = useState(false);
   const [about, setAbout] = useState(true);
 
+  // Changing image into base64
+
+  async function uploadImage(event) {
+    const file = event.target.files[0];
+    const base64 = await convertIntoBase64(file);
+    setImgSrc(base64);
+    setIsIMG(true);
+  }
+
+  function convertIntoBase64(file) {
+    return new Promise((resolve, reject) => {
+      const fileReader = new FileReader();
+      fileReader.readAsDataURL(file);
+
+      fileReader.onload = () => {
+        resolve(fileReader.result);
+      };
+
+      fileReader.onerror = (err) => {
+        reject(err);
+      };
+    });
+  }
+
+  // End of changing image.
+
   function handleImage() {
     setIsIMG(true);
     const input = document.querySelector(".choosed-img");
-    // const input = event.target.value;
-    // console.log(input);
-    // setImgSrc(input.files[0].name);
     setImgSrc("image/" + input.files[0].name);
-    // console.log(imgSrc);
+  }
+
+  function postUpload() {
+    const input = document.querySelector(".choosed-img");
+    const postContent = document.querySelector(".post-content-input").value;
+
+    // console.log(postContent);
+
+    fetch("/postUpload", {
+      method: "POST",
+      body: JSON.stringify({
+        postContent: postContent,
+        postImgSrc: imgSrc,
+        // postImgSrc: input.files[0].name,
+      }),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+        accessToken: localStorage.getItem("accessToken"),
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // console.log(data);
+        props.setPosts(data);
+        setAbout(true);
+        setIsPost(false);
+        setImgSrc("");
+        setIsIMG(false);
+      });
   }
 
   function hitPost() {
@@ -27,7 +78,13 @@ function Postform(props) {
       <h1>Post Your Creativity</h1>
       {isPost && (
         <div className="post-form-container">
-          <form action="/postUpload" method="post">
+          <form
+            action="/postUpload"
+            method="post"
+            onSubmit={(event) => {
+              event.preventDefault();
+            }}
+          >
             <p className="post-form-info">Post Content</p>
             <textarea
               cols="50"
@@ -46,15 +103,12 @@ function Postform(props) {
               type="file"
               name="choosedImg"
               className="choosed-img"
-              onChange={handleImage}
-            />
-            <button
-              type="submit"
-              className="post-btn"
-              onClick={() => {
-                props.account();
+              // onChange={handleImage}
+              onChange={(event) => {
+                uploadImage(event);
               }}
-            >
+            />
+            <button type="submit" className="post-btn" onClick={postUpload}>
               Upload
             </button>
           </form>

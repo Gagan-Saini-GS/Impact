@@ -3,18 +3,26 @@ import User from "./User";
 import Post from "./Post";
 
 function Dashboard(props) {
-  const [allPosts, setAllPosts] = useState([{}]);
-  const [allConnections, setConnections] = useState([{}]);
-  const [status, setStatus] = useState("");
+  const [allPosts, setAllPosts] = useState([]);
+  const [allConnections, setConnections] = useState([]);
+  // const [status, setStatus] = useState("");
   const [contentEdit, setContentEdit] = useState(false);
   const [about, setAbout] = useState(false);
   const [aboutContent, setAboutContent] = useState("");
   const [editSkill, setEditSkill] = useState(false);
   const [allSkills, setAllSkills] = useState([]);
   const [numberOfConnections, setNumberOfConnections] = useState(0);
+  const [imgSrc, setImgSrc] = useState("");
 
   useEffect(() => {
-    fetch("/accessActivities")
+    fetch("/accessActivities", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+        accessToken: localStorage.getItem("accessToken"),
+      },
+    })
       .then((response) => response.json())
       .then((data) => {
         setAllPosts(data);
@@ -22,7 +30,14 @@ function Dashboard(props) {
   }, []);
 
   useEffect(() => {
-    fetch("/accessConnections")
+    fetch("/accessConnections", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        accessToken: localStorage.getItem("accessToken"),
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    })
       .then((response) => response.json())
       .then((data) => {
         // console.log(data);
@@ -31,7 +46,14 @@ function Dashboard(props) {
   }, []);
 
   useEffect(() => {
-    fetch("/accessAboutContent")
+    fetch("/accessAboutContent", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        accessToken: localStorage.getItem("accessToken"),
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    })
       .then((response) => response.json())
       .then((data) => {
         // console.log(data);
@@ -40,7 +62,14 @@ function Dashboard(props) {
   }, []);
 
   useEffect(() => {
-    fetch("/accessSkills")
+    fetch("/accessSkills", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        accessToken: localStorage.getItem("accessToken"),
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    })
       .then((response) => response.json())
       .then((data) => {
         // console.log(data);
@@ -49,7 +78,14 @@ function Dashboard(props) {
   }, []);
 
   useEffect(() => {
-    fetch("/accessNumOfConnections")
+    fetch("/accessNumOfConnections", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        accessToken: localStorage.getItem("accessToken"),
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    })
       .then((response) => response.json())
       .then((data) => {
         setNumberOfConnections(data.numConnections);
@@ -66,6 +102,7 @@ function Dashboard(props) {
       }),
 
       headers: {
+        accessToken: localStorage.getItem("accessToken"),
         "Content-type": "application/json; charset=UTF-8",
       },
     })
@@ -88,8 +125,8 @@ function Dashboard(props) {
       body: JSON.stringify({
         skill: skillInput,
       }),
-
       headers: {
+        accessToken: localStorage.getItem("accessToken"),
         "Content-type": "application/json; charset=UTF-8",
       },
     })
@@ -103,13 +140,39 @@ function Dashboard(props) {
     setEditSkill(false);
   }
 
+  // Changing image into base64
+
+  async function uploadImage(event) {
+    const file = event.target.files[0];
+    const base64 = await convertIntoBase64(file);
+    setImgSrc(base64);
+    // setIsIMG(true);
+  }
+
+  function convertIntoBase64(file) {
+    return new Promise((resolve, reject) => {
+      const fileReader = new FileReader();
+      fileReader.readAsDataURL(file);
+
+      fileReader.onload = () => {
+        resolve(fileReader.result);
+      };
+
+      fileReader.onerror = (err) => {
+        reject(err);
+      };
+    });
+  }
+
+  // End of changing image.
+
   return (
     <div className="dashboard-container">
       <div className="user-profile-container dashboard-item">
         <div className="user-profile-img">
           <img
             src={props.userDetails.userProfileImage}
-            alt="User-Profile-Image"
+            alt="user-profile-image"
           />
         </div>
         <div className="user-details">
@@ -144,31 +207,29 @@ function Dashboard(props) {
               type="file"
               name="userProfileImage"
               className="user-profile-image"
+              onChange={(event) => {
+                uploadImage(event);
+              }}
             />
             <button
               className="save-btn"
               onClick={() => {
                 const userIntro = document.querySelector(".user-intro").value;
-                const userImg = document.querySelector(".user-profile-image")
-                  .files[0].name;
-
-                // console.log(userIntro);
-                // console.log(userImg);
-
                 fetch("/updateInformation", {
                   method: "POST",
                   body: JSON.stringify({
                     userIntro: userIntro,
-                    userImg: userImg,
+                    userImg: imgSrc,
                   }),
 
                   headers: {
                     "Content-type": "application/json; charset=UTF-8",
+                    accessToken: localStorage.getItem("accessToken"),
                   },
                 })
                   .then((response) => response.json())
                   .then((data) => {
-                    setStatus(data.status);
+                    // setStatus(data.status);
                   })
                   .catch((err) => {
                     console.log(err);

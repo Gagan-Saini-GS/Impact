@@ -1,17 +1,46 @@
+require("dotenv").config();
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const saltRounds = 10;
 
 const app = express();
-
-app.use(bodyParser.urlencoded({ extended: true }));
-
 // fetch se post kerte time use aaya h ye next line
-app.use(express.json());
-mongoose.connect("mongodb://localhost:27017/postDB");
+// If I remove the next line then the images part is going to work but.....
+// there is a issue I can't and don't want to remove next line.
+// app.use(express.json());
+
+// app.use(
+//   bodyParser.urlencoded({
+//     extended: true,
+//     parameterLimit: 1000000,
+//     limit: "50mb",
+//   })
+// );
+
+// 1.
+// app.use(bodyParser.json({ limit: "50mb" }));
+// app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+
+// 2.
+app.use(express.json({ limit: "50mb" }));
+// app.use(bodyParser.json({ limit: "50mb" }));
+app.use(
+  express.urlencoded({
+    limit: "50mb",
+    extended: true,
+    parameterLimit: 50000,
+  })
+);
+
+// app.use(bodyParser.urlencoded({ extended: true, limit: 4000000000 }));
+// app.use(express.urlencoded({ extended: true, limit: "5000mb" }));
+
+mongoose.connect("mongodb://localhost:27017/impactDB");
 
 const postSchema = new mongoose.Schema({
   userName: String,
@@ -41,6 +70,7 @@ const User = new mongoose.model("user", userSchema);
 const Post = new mongoose.model("post", postSchema);
 
 // let posts = [];
+// currentUser must be deleted in this version
 let currentUser = {
   userName: "",
   userEmail: "",
@@ -74,7 +104,19 @@ app.get("/getAllPosts", function (req, res) {
 });
 
 app.post("/postUpload", function (req, res) {
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+  // console.log(token);
+  let finalUser;
+
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
+    if (err) {
+      console.log(err);
+    }
+    // console.log(user);
+    finalUser = user;
+  });
+
+  User.findOne({ userEmail: finalUser.userEmail }, function (err, foundUser) {
     if (!err) {
       const x = foundUser;
 
@@ -83,70 +125,27 @@ app.post("/postUpload", function (req, res) {
           userName: x.userName,
           userIntro: x.userIntro,
           postContent: req.body.postContent,
-          postImgSrc: "image/" + req.body.choosedImg,
+          postImgSrc: req.body.postImgSrc,
+          // postImgSrc: "image/" + req.body.postImgSrc,
           profileImage: x.userProfileImage,
           likes: 0,
         });
 
         newPost.save();
 
-        // User.findOne(
-        //   { userName: currentUser.userName },
-        //   function (err, foundUser) {
-        //     if (!err) {
-        // const y = foundUser;
         x.allPosts.push({
           postImgSrc: newPost.postImgSrc,
           postContent: newPost.postContent,
         });
 
         x.save();
-        //     }
-        //   }
-        // );
       }
     }
   });
   haveAccount = true;
+
   res.redirect("/getAllPosts");
 });
-
-// app.post("/postUpload", function (req, res) {
-//   let x;
-//   User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
-//     if (!err) {
-//       x = foundUser;
-//     }
-//   });
-
-//   if (req.body.postContent !== "") {
-//     const newPost = new Post({
-//       userName: x.userName,
-//       userIntro: x.userIntro,
-//       postContent: req.body.postContent,
-//       postImgSrc: "image/" + req.body.choosedImg,
-//       profileImage: x.userProfileImage,
-//       likes: 0,
-//     });
-
-//     newPost.save();
-
-//     User.findOne({ userName: currentUser.userName }, function (err, foundUser) {
-//       if (!err) {
-//         const y = foundUser;
-//         y.allPosts.push({
-//           postImgSrc: newPost.postImgSrc,
-//           postContent: newPost.postContent,
-//         });
-
-//         y.save();
-//       }
-//     });
-//   }
-
-//   haveAccount = true;
-//   res.redirect("/getAllPosts");
-// });
 
 app.post("/signIn", function (req, res) {
   bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
@@ -158,15 +157,17 @@ app.post("/signIn", function (req, res) {
         // Add all feilds
       });
 
-      // currentUser = newUser;
-      currentUser.userName = newUser.userName;
-      currentUser.userEmail = newUser.userEmail;
-      currentUser.userIntro = "";
-      currentUser.userProfileImage = "";
       newUser.save();
+      const accessToken = jwt.sign(
+        {
+          userName: req.body.userName,
+          userEmail: req.body.userEmail,
+          password: hash,
+        },
+        process.env.ACCESS_TOKEN
+      );
 
-      haveAccount = true;
-      res.redirect("/getAllPosts");
+      res.json({ accessToken: accessToken });
     } else {
       console.log(err);
     }
@@ -174,12 +175,7 @@ app.post("/signIn", function (req, res) {
 });
 
 app.post("/login", function (req, res) {
-  // const userEmail = req.body.userEmail;
-  // const password = req.body.password;
-
   User.findOne({ userEmail: req.body.userEmail }, function (err, foundUser) {
-    // console.log("Login Requested");
-
     if (err) {
       console.log(err);
     } else {
@@ -187,16 +183,15 @@ app.post("/login", function (req, res) {
         req.body.password,
         foundUser.password,
         function (err, result) {
-          if (result === true) {
-            // console.log(foundUser.password);
-            // if (hash === foundUser.password) {
-            currentUser.userName = foundUser.userName;
-            currentUser.userEmail = foundUser.userEmail;
-            currentUser.userIntro = foundUser.userIntro;
-            currentUser.userProfileImage = foundUser.userProfileImage;
-            haveAccount = true;
-            res.redirect("/getAllPosts");
-            // }
+          if (!err && result === true) {
+            const accessToken = jwt.sign(
+              {
+                userEmail: req.body.userEmail,
+                password: foundUser.password,
+              },
+              process.env.ACCESS_TOKEN
+            );
+            res.json({ accessToken: accessToken });
           }
         }
       );
@@ -204,63 +199,128 @@ app.post("/login", function (req, res) {
   });
 });
 
-app.get("/isAccountActive", function (req, res) {
-  // haveAccount = true;
-  res.json({ haveAccount });
-});
+// app.get("/logout", function (req, res) {
+//   haveAccount = false;
+//   res.json({ haveAccount });
+// });
 
-app.get("/logout", function (req, res) {
-  haveAccount = false;
-  res.json({ haveAccount });
-});
+app.post("/currentUser", function (req, res) {
+  // Use accessToken which is passed from frontend to get the user details.
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+  // console.log(accessToken);
 
-app.get("/currentUser", function (req, res) {
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      const ans = foundUser;
-      res.json({ ans });
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (!err) {
+          // console.log(foundUser);
+          const ans = {
+            userName: foundUser.userName,
+            userEmail: foundUser.userEmail,
+            userIntro: foundUser.userIntro,
+            userProfileImage: foundUser.userProfileImage,
+          };
+          res.json({ ans });
+        }
+      });
     }
   });
 });
 
-app.get("/accessActivities", function (req, res) {
+function accessUser(token) {
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, user) {
+    if (!err) {
+      // console.log(user);
+      const foundUser = user;
+      return foundUser;
+    }
+  });
+}
+
+app.post("/accessActivities", function (req, res) {
   // console.log("Access Activities");
   // console.log(currentUser);
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
-    console.log(foundUser);
+
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+  // console.log(accessToken.accessToken);
+
+  // console.log(accessUser(req.body.accessToken.accessToken));
+  // console.log(hello);
+
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      let currentUserAllPosts = foundUser.allPosts;
-      currentUserAllPosts.reverse();
-      res.json({ currentUserAllPosts });
+      // console.log(user);
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        // console.log(foundUser);
+        if (!err) {
+          let currentUserAllPosts = foundUser.allPosts;
+          currentUserAllPosts.reverse();
+          res.json({ currentUserAllPosts });
+        }
+      });
     }
   });
 });
 
-app.get("/accessConnections", function (req, res) {
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
-    // console.log(foundUser);
+app.post("/accessConnections", function (req, res) {
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      let currentUserConnections = foundUser.connections;
-      res.json({ currentUserConnections });
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (!err) {
+          let currentUserConnections = foundUser.connections;
+          res.json({ currentUserConnections });
+        }
+      });
     }
   });
 });
 
-app.get("/accessAboutContent", function (req, res) {
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
-    // console.log(foundUser);
-    let userAboutContent = foundUser.userAboutContent;
+app.post("/accessAboutContent", function (req, res) {
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
 
-    res.json({ userAboutContent });
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
+    if (!err) {
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        // console.log(foundUser);
+        let userAboutContent = foundUser.userAboutContent;
+
+        res.json({ userAboutContent });
+      });
+    }
   });
 });
 
-app.get("/accessSkills", function (req, res) {
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
-    // console.log(foundUser);
-    let currentUserSkills = foundUser.skills;
+app.post("/accessSkills", function (req, res) {
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
 
-    res.json({ currentUserSkills });
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
+    if (!err) {
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        // console.log(foundUser);
+        let currentUserSkills = foundUser.skills;
+
+        res.json({ currentUserSkills });
+      });
+    }
+  });
+});
+
+app.post("/accessNumOfConnections", function (req, res) {
+  // let numConnetions;
+
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
+    if (!err) {
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (!err) {
+          const x = foundUser;
+          const numConnections = x.connections.length;
+          res.json({ numConnections });
+        }
+      });
+    }
   });
 });
 
@@ -292,22 +352,31 @@ app.post("/getLikes", function (req, res) {
 app.post("/addComment", function (req, res) {
   const clickedPostSrc = req.body.postSrc;
   const commentValue = req.body.valueOfComment;
-  const postingUserName = currentUser.userName;
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
   // console.log(currentUser.userName);
 
-  Post.findOne({ postImgSrc: clickedPostSrc }, function (err, foundPost) {
-    if (!err) {
-      let x = foundPost;
-      // console.log(x);
-      // console.log("Comments");
-      // console.log(x.comments);
-      x.comments.push({ postingUserName, commentValue });
-      x.save();
-      let allComments = x.comments;
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
+    User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+      if (err) {
+        console.log(err);
+      }
+      const postingUserName = foundUser.userName;
 
-      // console.log(x.comments);
-      res.json({ allComments });
-    }
+      Post.findOne({ postImgSrc: clickedPostSrc }, function (err, foundPost) {
+        if (!err) {
+          let x = foundPost;
+          // console.log(x);
+          // console.log("Comments");
+          // console.log(x.comments);
+          x.comments.push({ postingUserName, commentValue });
+          x.save();
+          let allComments = x.comments;
+
+          // console.log(x.comments);
+          res.json({ allComments });
+        }
+      });
+    });
   });
 });
 
@@ -327,6 +396,7 @@ app.post("/getAllComments", function (req, res) {
 
 app.post("/findUser", function (req, res) {
   const username = req.body.username;
+  // const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
 
   // console.log(req.body);
 
@@ -354,35 +424,42 @@ app.post("/findUser", function (req, res) {
 
 app.post("/makeConnection", function (req, res) {
   const receiver = req.body.receiver;
-  const sender = {
-    userProfileImage: currentUser.userProfileImage,
-    userName: currentUser.userName,
-    userIntro: currentUser.userIntro,
-    userEmail: currentUser.userEmail,
-  };
+  // const sender = {
+  //   userProfileImage: currentUser.userProfileImage,
+  //   userName: currentUser.userName,
+  //   userIntro: currentUser.userIntro,
+  //   userEmail: currentUser.userEmail,
+  // };
 
-  // console.log("Receiver");
-  // console.log(receiver);
-  // console.log("Sender");
-  // console.log(sender);
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
 
-  User.findOne({ userEmail: receiver.userEmail }, function (err, foundUser) {
-    if (err) {
-      console.log(err);
-    } else {
-      const x = foundUser;
-      x.invitations.push(sender);
-      x.save();
-    }
-  });
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
+    if (!err) {
+      User.findOne({ userEmail: user.userEmail }, function (err, sender) {
+        if (!err) {
+          User.findOne(
+            { userEmail: receiver.userEmail },
+            function (err, foundUser) {
+              if (err) {
+                console.log(err);
+              } else {
+                const x = foundUser;
 
-  User.findOne({ userEmail: sender.userEmail }, function (err, foundUser) {
-    if (err) {
-      console.log(err);
-    } else {
-      const x = foundUser;
-      x.pendingRequests.push(receiver);
-      x.save();
+                x.invitations.push({
+                  userName: sender.userName,
+                  userEmail: sender.userEmail,
+                  userIntro: sender.userIntro,
+                  userProfileImage: sender.userProfileImage,
+                });
+                x.save();
+              }
+            }
+          );
+          const x = sender;
+          x.pendingRequests.push(receiver);
+          x.save();
+        }
+      });
     }
   });
   // receiver.pendingRequests.push(sender);
@@ -394,105 +471,171 @@ app.post("/makeConnection", function (req, res) {
   // And Sender ke bhi same pending connection me show kerdeta hu.
 });
 
-app.get("/showInvitations", function (req, res) {
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
+app.post("/showInvitations", function (req, res) {
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      const x = foundUser.invitations;
-      res.json({ x });
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (!err) {
+          const x = foundUser.invitations;
+          res.json({ x });
+        }
+      });
     }
   });
 });
 
-app.get("/showPendingRequest", function (req, res) {
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
+app.post("/showPendingRequest", function (req, res) {
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      const x = foundUser.pendingRequests;
-      // console.log("Pending Requests");
-      // console.log(x);
-      res.json({ x });
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (!err) {
+          const x = foundUser.pendingRequests;
+          res.json({ x });
+        }
+      });
     }
   });
 });
 
-app.get("/showConnections", function (req, res) {
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
+app.post("/showConnections", function (req, res) {
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      const x = foundUser.connections;
-      res.json({ x });
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (!err) {
+          const x = foundUser.connections;
+          res.json({ x });
+        }
+      });
     }
   });
 });
 
 app.post("/acceptConnectionRequest", function (req, res) {
   const user = req.body.user;
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
   // currentUser.connections.push(user);
 
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, getUser) {
     if (!err) {
-      const x = foundUser;
-      x.connections.push(user);
-      removeRequest(x.invitations, user);
+      let currentUserDetails;
+      User.findOne({ userEmail: getUser.userEmail }, function (err, foundUser) {
+        if (!err) {
+          const x = foundUser;
+          x.connections.push(user);
+          removeRequest(x.invitations, getUser);
 
-      x.save();
+          currentUserDetails = {
+            userProfileImage: x.userProfileImage,
+            userName: x.userName,
+            userEmail: x.userEmail,
+            userIntro: x.userIntro,
+          };
+          x.save();
+        }
+      });
+
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (err) {
+          console.log(err);
+        } else {
+          const x = foundUser;
+          x.connections.push(currentUserDetails);
+
+          removeRequest(x.pendingRequests, user);
+          x.save();
+        }
+      });
     }
   });
 
   // I also have to update connections array of user (which is  got from post request)
   // Updating connection array of user.
 
-  const currentUserDetails = {
-    userProfileImage: currentUser.userProfileImage,
-    userName: currentUser.userName,
-    userEmail: currentUser.userEmail,
-    userIntro: currentUser.userIntro,
-  };
-
-  User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
-    if (err) {
-      console.log(err);
-    } else {
-      const x = foundUser;
-      x.connections.push(currentUserDetails);
-
-      removeRequest(x.pendingRequests, currentUser);
-      x.save();
-    }
-  });
-
   const status = "ADDED";
   res.json({ status });
 });
 
 app.post("/ignoreConnectionRequest", function (req, res) {
+  // New code
   const user = req.body.user;
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
   // currentUser.connections.push(user);
 
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, getUser) {
     if (!err) {
-      const x = foundUser;
-      removeRequest(x.invitations, user);
+      User.findOne({ userEmail: getUser.userEmail }, function (err, foundUser) {
+        if (!err) {
+          const x = foundUser;
+          // x.connections.push(user);
+          removeRequest(x.invitations, getUser);
 
-      x.save();
+          x.save();
+        }
+      });
+
+      // const currentUserDetails = {
+      //   userProfileImage: getUser.userProfileImage,
+      //   userName: getUser.userName,
+      //   userEmail: getUser.userEmail,
+      //   userIntro: getUser.userIntro,
+      // };
+
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (err) {
+          console.log(err);
+        } else {
+          const x = foundUser;
+          // x.connections.push(currentUserDetails);
+
+          removeRequest(x.pendingRequests, user);
+          x.save();
+        }
+      });
     }
   });
 
   // I also have to update connections array of user (which is  got from post request)
-  // Updating connection array of user
-
-  User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
-    if (err) {
-      console.log(err);
-    } else {
-      const x = foundUser;
-      // x.connections.push(currentUser);
-
-      removeRequest(x.pendingRequests, currentUser);
-      x.save();
-    }
-  });
+  // Updating connection array of user.
 
   const status = "REMOVED";
   res.json({ status });
+  // New code ends
+
+  // const user = req.body.user;
+  // currentUser.connections.push(user);
+
+  // User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
+  //   if (!err) {
+  //     const x = foundUser;
+  //     removeRequest(x.invitations, user);
+
+  //     x.save();
+  //   }
+  // });
+
+  // I also have to update connections array of user (which is  got from post request)
+  // Updating connection array of user
+
+  // User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+  //   if (err) {
+  //     console.log(err);
+  //   } else {
+  //     const x = foundUser;
+  //     // x.connections.push(currentUser);
+
+  //     removeRequest(x.pendingRequests, currentUser);
+  //     x.save();
+  //   }
+  // });
+
+  // const status = "REMOVED";
+  // res.json({ status });
 });
 
 function removeRequest(arr, keyUser) {
@@ -517,66 +660,69 @@ function removeRequest(arr, keyUser) {
 
 app.post("/updateInformation", function (req, res) {
   const userIntro = req.body.userIntro;
-  const userImg = "image/" + req.body.userImg;
+  const userProfileImage = req.body.userImg;
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+  // const userImg = "image/" + req.body.userImg;
 
   // Changes must held in currentUser.
   // currentUser.userProfileImage = userImg;
   // currentUser.userIntro = userIntro;
 
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
-    if (err) {
-      console.log(err);
-    } else {
-      const newUser = foundUser;
-      newUser.userIntro = userIntro;
-      newUser.userProfileImage = userImg;
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
+    if (!err) {
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (err) {
+          console.log(err);
+        } else {
+          const newUser = foundUser;
+          newUser.userIntro = userIntro;
+          newUser.userProfileImage = userProfileImage;
 
-      newUser.save();
+          newUser.save();
+        }
+      });
+
+      const status = "Information updated";
+      res.json({ status });
     }
   });
-
-  const status = "Information updated";
-  res.json({ status });
 });
 
 app.post("/updateAboutContent", function (req, res) {
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
-    if (!err) {
-      const x = foundUser;
-      x.userAboutContent = req.body.userAboutContent;
-      x.save();
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
 
-      const ans = x.userAboutContent;
-      res.json({ ans });
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
+    if (!err) {
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (!err) {
+          const x = foundUser;
+          x.userAboutContent = req.body.userAboutContent;
+          x.save();
+
+          const ans = x.userAboutContent;
+          res.json({ ans });
+        }
+      });
     }
   });
 });
 
 app.post("/addSkill", function (req, res) {
   const currentSkill = req.body.skill;
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      const x = foundUser;
-      x.skills.push(currentSkill);
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (!err) {
+          const x = foundUser;
+          x.skills.push(currentSkill);
 
-      x.save();
-
-      const skills = x.skills;
-      res.json({ skills });
-    }
-  });
-});
-
-app.get("/accessNumOfConnections", function (req, res) {
-  // let numConnetions;
-
-  User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
-    if (!err) {
-      const x = foundUser;
-      const numConnections = x.connections.length;
-      // console.log(numConnections);
-
-      res.json({ numConnections });
+          x.save();
+          const skills = x.skills;
+          res.json({ skills });
+        }
+      });
     }
   });
 });

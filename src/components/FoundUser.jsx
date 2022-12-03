@@ -11,7 +11,7 @@ function Founduser(props) {
       userIntro: props.userIntro,
     };
 
-    // console.log(receiver);
+    console.log(receiver);
 
     fetch("/makeConnection", {
       method: "POST",
@@ -21,6 +21,7 @@ function Founduser(props) {
 
       headers: {
         "Content-type": "application/json; charset=UTF-8",
+        accessToken: localStorage.getItem("accessToken"),
       },
     })
       .then((response) => response.json())

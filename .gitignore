@@ -32,3 +32,6 @@ yarn-error.log*
 
 # Temp files
 /src/postDetails.js
+
+# Important files
+.env
