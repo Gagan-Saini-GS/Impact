@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import User from "./User";
 import Post from "./Post";
 
-function Dashboard(props) {
+function Dashboard() {
   const [allPosts, setAllPosts] = useState([]);
   const [allConnections, setConnections] = useState([]);
   // const [status, setStatus] = useState("");
@@ -13,6 +13,24 @@ function Dashboard(props) {
   const [allSkills, setAllSkills] = useState([]);
   const [numberOfConnections, setNumberOfConnections] = useState(0);
   const [imgSrc, setImgSrc] = useState("");
+  let [currentUser, setCurrentUser] = useState({});
+
+  useEffect(() => {
+    fetch("/currentUser", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+        accessToken: localStorage.getItem("accessToken"),
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        currentUser = data.ans;
+        setCurrentUser(data.ans);
+        console.log(currentUser);
+      });
+  }, []);
 
   useEffect(() => {
     fetch("/accessActivities", {
@@ -40,7 +58,7 @@ function Dashboard(props) {
     })
       .then((response) => response.json())
       .then((data) => {
-        // console.log(data);
+        console.log(data);
         setConnections(data.currentUserConnections);
       });
   }, []);
@@ -170,14 +188,11 @@ function Dashboard(props) {
     <div className="dashboard-container">
       <div className="user-profile-container dashboard-item">
         <div className="user-profile-img">
-          <img
-            src={props.userDetails.userProfileImage}
-            alt="user-profile-image"
-          />
+          <img src={currentUser.userProfileImage} alt="user-profile-image" />
         </div>
         <div className="user-details">
-          <h4>{props.userDetails.userName}</h4>
-          <h4>{props.userDetails.userIntro}</h4>
+          <h4>{currentUser.userName}</h4>
+          <h4>{currentUser.userIntro}</h4>
           {/* <h4>{props.userDetails.userEmail}</h4> */}
         </div>
         <div className="followers">

@@ -1,11 +1,15 @@
 import React, { useState } from "react";
+import { useEffect } from "react";
 import Postuser from "./Postuser";
+import User from "./User";
 
 function CreatePost(props) {
   const [isLiked, setLike] = useState(false);
   const [countLikes, setCountLikes] = useState(props.likes);
   const [showComments, setShowComments] = useState(false);
-  const [addComment, setAddComments] = useState([{}]);
+  const [addComment, setAddComments] = useState([]);
+  let [likeMails, setLikeMails] = useState([]);
+  let [userEmail, setUserEmail] = useState("");
 
   function postComment(commentValue) {
     fetch("/addComment", {
@@ -30,6 +34,44 @@ function CreatePost(props) {
       });
   }
 
+  useEffect(() => {
+    fetch("/getLikes", {
+      method: "POST",
+      body: JSON.stringify({
+        postSrc: props.postSrc,
+      }),
+      headers: {
+        accessToken: localStorage.getItem("accessToken"),
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // console.log(data.ans);
+        likeMails = data.ans.likeMails;
+        userEmail = data.ans.userEmail;
+        // console.log(likeMails);
+        setLikeMails(data.ans.likeMails);
+        setUserEmail(data.ans.userEmail);
+        findEmail();
+      });
+  }, []);
+
+  function findEmail() {
+    // console.log("Hello");
+    // console.log(likeMails.length);
+    console.log(likeMails);
+    console.log(userEmail);
+    for (let i = 0; i < likeMails.length; i++) {
+      if (likeMails[i] === userEmail) {
+        // console.log(item);
+        setLike(true);
+        break;
+      }
+    }
+  }
+  // checkLiked();
+
   return (
     <div className="created-post">
       <Postuser
@@ -47,33 +89,34 @@ function CreatePost(props) {
                 setLike(!isLiked);
                 event.target.style.color = "#fffaff";
 
-                fetch("/getLikes", {
+                fetch("/addLikes", {
                   // Adding method type
                   method: "POST",
 
                   // Adding body or contents to send
                   body: JSON.stringify({
                     postSrc: props.postSrc,
+                    userEmail: userEmail,
                     isLike: true,
                   }),
 
                   // Adding headers to the request
                   headers: {
+                    accessToken: localStorage.getItem("accessToken"),
                     "Content-type": "application/json; charset=UTF-8",
                   },
                 })
                   .then((response) => response.json())
                   .then((data) => {
-                    // console.log(data.totalLikes);
-                    console.log(countLikes);
-                    setCountLikes(data.totalLikes);
-                    console.log(countLikes);
+                    // console.log(data.ans);
+                    setCountLikes(data.ans.totalLikes);
                   })
                   .catch((err) => {
                     console.log(err);
                   });
               }}
               className="fas fa-heart"
+              style={{ color: "red" }}
             ></i>
             <span className="like-count">
               {countLikes > 0 ? countLikes : null}
@@ -83,37 +126,37 @@ function CreatePost(props) {
           <div>
             <i
               onClick={(event) => {
-                // console.log(props.postSrc);
                 setLike(!isLiked);
                 event.target.style.color = "red";
 
-                fetch("/getLikes", {
+                fetch("/addLikes", {
                   // Adding method type
                   method: "POST",
 
                   // Adding body or contents to send
                   body: JSON.stringify({
                     postSrc: props.postSrc,
+                    userEmail: userEmail,
                     isLike: false,
                   }),
 
                   // Adding headers to the request
                   headers: {
+                    accessToken: localStorage.getItem("accessToken"),
                     "Content-type": "application/json; charset=UTF-8",
                   },
                 })
                   .then((response) => response.json())
                   .then((data) => {
-                    // console.log(data.totalLikes);
-                    console.log(countLikes);
-                    setCountLikes(data.totalLikes);
-                    console.log(countLikes);
+                    // console.log(data.ans);
+                    setCountLikes(data.ans.totalLikes);
                   })
                   .catch((err) => {
                     console.log(err);
                   });
               }}
               className="far fa-heart"
+              // style={{ color: "white" }}
             ></i>
             <span className="like-count">
               {countLikes > 0 ? countLikes : null}
@@ -139,7 +182,7 @@ function CreatePost(props) {
           </button>
           <p
             onClick={() => {
-              console.log(showComments);
+              // console.log(showComments);
               fetch("/getAllComments", {
                 method: "POST",
                 body: JSON.stringify({
@@ -147,14 +190,17 @@ function CreatePost(props) {
                 }),
 
                 headers: {
+                  accessToken: localStorage.getItem("accessToken"),
                   "Content-type": "application/json; charset=UTF-8",
                 },
               })
                 .then((response) => response.json())
                 .then((data) => {
-                  console.log(data.allComments);
+                  // console.log(data.allComments);
+                  // addComment = data.allComments;
                   setAddComments(data.allComments);
-                  console.log(addComment);
+                  // console.log(addComment);
+                  // console.log(addComment[0]);
                 })
                 .catch((err) => {
                   console.log(err);
@@ -170,11 +216,19 @@ function CreatePost(props) {
       <div className="show-comment-section">
         {showComments &&
           addComment.map((item, index) => {
-            console.log(addComment);
+            // console.log(item);
             return (
               <div className="posted-comment" key={index}>
-                <h4>{item.postingUserName}</h4>
-                {item.commentValue}
+                <div className="user-details-box">
+                  <User
+                    src={item.postingUser.userProfileImage}
+                    username={item.postingUser.userName}
+                    userintro={item.postingUser.userIntro}
+                  />
+                  {/* <h3>{item.postingUser.userName}</h3>
+                  <h6>{item.postingUser.userIntro}</h6> */}
+                </div>
+                <div className="comment">{item.commentValue}</div>
               </div>
             );
           })}

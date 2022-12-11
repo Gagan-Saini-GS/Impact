@@ -10,11 +10,7 @@ function InviteCard(props) {
   };
 
   function acceptConnectionRequest() {
-    // console.log(user.userName + " connection request accepted !!");
-    // Post on /acceptConnectionRequest and then
-    // add this user in connection array of currentUser (backend) and
-    // pop this user from his (currentUser , backend).
-
+    console.log(user);
     fetch("/acceptConnectionRequest", {
       method: "POST",
       body: JSON.stringify({
@@ -74,7 +70,12 @@ function InviteCard(props) {
         </div>
       )}
       {props.type === "request" && <div className="IC-controls">Pending</div>}
-      {props.type === "connection" && null}
+      {
+        props.type === "connection" && null
+        // <div className="IC-controls">
+        //   <button className="IC-btn">Message</button>
+        // </div>
+      }
     </div>
   );
 }

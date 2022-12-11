@@ -9,26 +9,8 @@ const jwt = require("jsonwebtoken");
 const saltRounds = 10;
 
 const app = express();
-// fetch se post kerte time use aaya h ye next line
-// If I remove the next line then the images part is going to work but.....
-// there is a issue I can't and don't want to remove next line.
-// app.use(express.json());
 
-// app.use(
-//   bodyParser.urlencoded({
-//     extended: true,
-//     parameterLimit: 1000000,
-//     limit: "50mb",
-//   })
-// );
-
-// 1.
-// app.use(bodyParser.json({ limit: "50mb" }));
-// app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
-
-// 2.
 app.use(express.json({ limit: "50mb" }));
-// app.use(bodyParser.json({ limit: "50mb" }));
 app.use(
   express.urlencoded({
     limit: "50mb",
@@ -37,19 +19,18 @@ app.use(
   })
 );
 
-// app.use(bodyParser.urlencoded({ extended: true, limit: 4000000000 }));
-// app.use(express.urlencoded({ extended: true, limit: "5000mb" }));
-
 mongoose.connect("mongodb://localhost:27017/impactDB");
 
 const postSchema = new mongoose.Schema({
   userName: String,
   userIntro: String,
+  userEmail: String,
   postContent: String,
   postImgSrc: String,
   profileImage: String,
   likes: Number,
   comments: [{}],
+  likeMails: [],
 });
 
 const userSchema = new mongoose.Schema({
@@ -69,19 +50,6 @@ const userSchema = new mongoose.Schema({
 const User = new mongoose.model("user", userSchema);
 const Post = new mongoose.model("post", postSchema);
 
-// let posts = [];
-// currentUser must be deleted in this version
-let currentUser = {
-  userName: "",
-  userEmail: "",
-  userIntro: "",
-  userProfileImage: "",
-  pendingRequests: [{}],
-  invitations: [{}],
-  connections: [{}],
-};
-let haveAccount = false;
-
 app.get("/", function (req, res) {
   res.send("Hello");
 });
@@ -95,7 +63,6 @@ app.get("/getAllPosts", function (req, res) {
       // but If I pass by using another variable then it's working but HOW ???
 
       let posts = foundPosts;
-      // console.log(posts);
       // I reversed array because last post must be on top.
       posts.reverse();
       res.json({ posts });
@@ -105,14 +72,12 @@ app.get("/getAllPosts", function (req, res) {
 
 app.post("/postUpload", function (req, res) {
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
-  // console.log(token);
   let finalUser;
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (err) {
       console.log(err);
     }
-    // console.log(user);
     finalUser = user;
   });
 
@@ -124,13 +89,13 @@ app.post("/postUpload", function (req, res) {
         const newPost = new Post({
           userName: x.userName,
           userIntro: x.userIntro,
+          userEmail: x.userEmail,
           postContent: req.body.postContent,
           postImgSrc: req.body.postImgSrc,
-          // postImgSrc: "image/" + req.body.postImgSrc,
           profileImage: x.userProfileImage,
           likes: 0,
+          likeMails: [],
         });
-
         newPost.save();
 
         x.allPosts.push({
@@ -142,7 +107,6 @@ app.post("/postUpload", function (req, res) {
       }
     }
   });
-  haveAccount = true;
 
   res.redirect("/getAllPosts");
 });
@@ -154,6 +118,7 @@ app.post("/signIn", function (req, res) {
         userName: req.body.userName,
         userEmail: req.body.userEmail,
         password: hash,
+        role: "ADMIN",
         // Add all feilds
       });
 
@@ -163,6 +128,7 @@ app.post("/signIn", function (req, res) {
           userName: req.body.userName,
           userEmail: req.body.userEmail,
           password: hash,
+          role: "ADMIN",
         },
         process.env.ACCESS_TOKEN
       );
@@ -188,6 +154,7 @@ app.post("/login", function (req, res) {
               {
                 userEmail: req.body.userEmail,
                 password: foundUser.password,
+                role: "ADMIN",
               },
               process.env.ACCESS_TOKEN
             );
@@ -199,21 +166,14 @@ app.post("/login", function (req, res) {
   });
 });
 
-// app.get("/logout", function (req, res) {
-//   haveAccount = false;
-//   res.json({ haveAccount });
-// });
-
 app.post("/currentUser", function (req, res) {
   // Use accessToken which is passed from frontend to get the user details.
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
-  // console.log(accessToken);
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
       User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
         if (!err) {
-          // console.log(foundUser);
           const ans = {
             userName: foundUser.userName,
             userEmail: foundUser.userEmail,
@@ -230,7 +190,6 @@ app.post("/currentUser", function (req, res) {
 function accessUser(token) {
   jwt.verify(token, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      // console.log(user);
       const foundUser = user;
       return foundUser;
     }
@@ -238,20 +197,11 @@ function accessUser(token) {
 }
 
 app.post("/accessActivities", function (req, res) {
-  // console.log("Access Activities");
-  // console.log(currentUser);
-
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
-  // console.log(accessToken.accessToken);
-
-  // console.log(accessUser(req.body.accessToken.accessToken));
-  // console.log(hello);
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      // console.log(user);
       User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
-        // console.log(foundUser);
         if (!err) {
           let currentUserAllPosts = foundUser.allPosts;
           currentUserAllPosts.reverse();
@@ -283,7 +233,6 @@ app.post("/accessAboutContent", function (req, res) {
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
       User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
-        // console.log(foundUser);
         let userAboutContent = foundUser.userAboutContent;
 
         res.json({ userAboutContent });
@@ -298,7 +247,6 @@ app.post("/accessSkills", function (req, res) {
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
       User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
-        // console.log(foundUser);
         let currentUserSkills = foundUser.skills;
 
         res.json({ currentUserSkills });
@@ -308,8 +256,6 @@ app.post("/accessSkills", function (req, res) {
 });
 
 app.post("/accessNumOfConnections", function (req, res) {
-  // let numConnetions;
-
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
@@ -325,26 +271,46 @@ app.post("/accessNumOfConnections", function (req, res) {
 });
 
 app.post("/getLikes", function (req, res) {
-  // console.log(req.body.postSrc);
-  // res.json({});
+  const clickedPostSrc = req.body.postSrc;
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
 
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
+    if (!err) {
+      Post.findOne({ postImgSrc: clickedPostSrc }, function (err, foundPost) {
+        if (!err) {
+          const ans = {
+            likeMails: foundPost.likeMails,
+            userEmail: user.userEmail,
+          };
+          res.json({ ans });
+        }
+      });
+    }
+  });
+});
+
+app.post("/addLikes", function (req, res) {
   const clickedPostSrc = req.body.postSrc;
   const isLike = req.body.isLike;
+  const userEmail = req.body.userEmail;
 
   Post.findOne({ postImgSrc: clickedPostSrc }, function (err, foundPost) {
     if (!err) {
-      // console.log(foundPost);
       let x = foundPost;
 
       if (isLike == true) {
         x.likes = x.likes - 1;
+        removeRequest(x.likeMails, userEmail);
       } else {
+        x.likeMails.push(userEmail);
         x.likes = x.likes + 1;
       }
-
       x.save();
-      let totalLikes = x.likes;
-      res.json({ totalLikes });
+
+      let ans = {
+        totalLikes: x.likes,
+      };
+      res.json({ ans });
     }
   });
 });
@@ -353,26 +319,25 @@ app.post("/addComment", function (req, res) {
   const clickedPostSrc = req.body.postSrc;
   const commentValue = req.body.valueOfComment;
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
-  // console.log(currentUser.userName);
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
       if (err) {
         console.log(err);
       }
-      const postingUserName = foundUser.userName;
+      const postingUser = {
+        userName: foundUser.userName,
+        userIntro: foundUser.userIntro,
+        userProfileImage: foundUser.userProfileImage,
+      };
 
       Post.findOne({ postImgSrc: clickedPostSrc }, function (err, foundPost) {
         if (!err) {
           let x = foundPost;
-          // console.log(x);
-          // console.log("Comments");
-          // console.log(x.comments);
-          x.comments.push({ postingUserName, commentValue });
+          x.comments.push({ postingUser, commentValue });
           x.save();
-          let allComments = x.comments;
 
-          // console.log(x.comments);
+          let allComments = x.comments;
           res.json({ allComments });
         }
       });
@@ -382,27 +347,31 @@ app.post("/addComment", function (req, res) {
 
 app.post("/getAllComments", function (req, res) {
   const clickedPostSrc = req.body.postSrc;
+  const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
 
-  Post.findOne({ postImgSrc: clickedPostSrc }, function (err, foundPost) {
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {
-      let x = foundPost;
-      let allComments = x.comments;
+      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
+        if (err) {
+          console.log(err);
+        }
 
-      // console.log(allComments);
-      res.json({ allComments });
+        Post.findOne({ postImgSrc: clickedPostSrc }, function (err, foundPost) {
+          if (!err) {
+            let allComments = foundPost.comments;
+            res.json({ allComments });
+          }
+        });
+      });
     }
   });
 });
 
 app.post("/findUser", function (req, res) {
   const username = req.body.username;
-  // const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
-
-  // console.log(req.body);
 
   User.find({ userName: username }, function (err, foundUsers) {
     if (!err) {
-      // console.log(foundUsers);
       let users = [];
       for (let i = 0; i < foundUsers.length; i++) {
         const x = foundUsers[i];
@@ -416,7 +385,6 @@ app.post("/findUser", function (req, res) {
         users.push(user);
       }
 
-      // console.log(users);
       res.json({ users });
     }
   });
@@ -424,12 +392,6 @@ app.post("/findUser", function (req, res) {
 
 app.post("/makeConnection", function (req, res) {
   const receiver = req.body.receiver;
-  // const sender = {
-  //   userProfileImage: currentUser.userProfileImage,
-  //   userName: currentUser.userName,
-  //   userIntro: currentUser.userIntro,
-  //   userEmail: currentUser.userEmail,
-  // };
 
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
 
@@ -462,7 +424,6 @@ app.post("/makeConnection", function (req, res) {
       });
     }
   });
-  // receiver.pendingRequests.push(sender);
 
   const status = "Pending";
   res.json({ status });
@@ -510,8 +471,12 @@ app.post("/showConnections", function (req, res) {
         if (!err) {
           const x = foundUser.connections;
           res.json({ x });
+        } else {
+          console.log(err);
         }
       });
+    } else {
+      console.log(err);
     }
   });
 });
@@ -519,7 +484,6 @@ app.post("/showConnections", function (req, res) {
 app.post("/acceptConnectionRequest", function (req, res) {
   const user = req.body.user;
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
-  // currentUser.connections.push(user);
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, getUser) {
     if (!err) {
@@ -537,18 +501,21 @@ app.post("/acceptConnectionRequest", function (req, res) {
             userIntro: x.userIntro,
           };
           x.save();
-        }
-      });
 
-      User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
-        if (err) {
-          console.log(err);
-        } else {
-          const x = foundUser;
-          x.connections.push(currentUserDetails);
+          User.findOne(
+            { userEmail: user.userEmail },
+            function (err, foundUser) {
+              if (err) {
+                console.log(err);
+              } else {
+                const y = foundUser;
+                y.connections.push(currentUserDetails);
 
-          removeRequest(x.pendingRequests, user);
-          x.save();
+                removeRequest(y.pendingRequests, user);
+                y.save();
+              }
+            }
+          );
         }
       });
     }
@@ -562,37 +529,25 @@ app.post("/acceptConnectionRequest", function (req, res) {
 });
 
 app.post("/ignoreConnectionRequest", function (req, res) {
-  // New code
   const user = req.body.user;
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
-  // currentUser.connections.push(user);
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, getUser) {
     if (!err) {
       User.findOne({ userEmail: getUser.userEmail }, function (err, foundUser) {
         if (!err) {
           const x = foundUser;
-          // x.connections.push(user);
           removeRequest(x.invitations, getUser);
 
           x.save();
         }
       });
 
-      // const currentUserDetails = {
-      //   userProfileImage: getUser.userProfileImage,
-      //   userName: getUser.userName,
-      //   userEmail: getUser.userEmail,
-      //   userIntro: getUser.userIntro,
-      // };
-
       User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
         if (err) {
           console.log(err);
         } else {
           const x = foundUser;
-          // x.connections.push(currentUserDetails);
-
           removeRequest(x.pendingRequests, user);
           x.save();
         }
@@ -605,37 +560,6 @@ app.post("/ignoreConnectionRequest", function (req, res) {
 
   const status = "REMOVED";
   res.json({ status });
-  // New code ends
-
-  // const user = req.body.user;
-  // currentUser.connections.push(user);
-
-  // User.findOne({ userEmail: currentUser.userEmail }, function (err, foundUser) {
-  //   if (!err) {
-  //     const x = foundUser;
-  //     removeRequest(x.invitations, user);
-
-  //     x.save();
-  //   }
-  // });
-
-  // I also have to update connections array of user (which is  got from post request)
-  // Updating connection array of user
-
-  // User.findOne({ userEmail: user.userEmail }, function (err, foundUser) {
-  //   if (err) {
-  //     console.log(err);
-  //   } else {
-  //     const x = foundUser;
-  //     // x.connections.push(currentUser);
-
-  //     removeRequest(x.pendingRequests, currentUser);
-  //     x.save();
-  //   }
-  // });
-
-  // const status = "REMOVED";
-  // res.json({ status });
 });
 
 function removeRequest(arr, keyUser) {
@@ -662,11 +586,6 @@ app.post("/updateInformation", function (req, res) {
   const userIntro = req.body.userIntro;
   const userProfileImage = req.body.userImg;
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
-  // const userImg = "image/" + req.body.userImg;
-
-  // Changes must held in currentUser.
-  // currentUser.userProfileImage = userImg;
-  // currentUser.userIntro = userIntro;
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {
     if (!err) {

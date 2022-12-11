@@ -38,6 +38,7 @@ function Navbar(props) {
   }
 
   function getConnections() {
+    // props.showConnections();
     fetch("/showConnections", {
       method: "POST",
       body: JSON.stringify({}),
@@ -48,7 +49,7 @@ function Navbar(props) {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log("Hello from api");
+        // console.log("Hello from api");
         console.log(data.x);
         setConnections(data.x);
         props.showConnections(showConnections);
@@ -160,12 +161,16 @@ function Navbar(props) {
 
       <div className="nav-item streak">
         <ul className="list streak-list">
-          <li>
-            <i className="fas fa-fire"></i>Current Streak
-          </li>
-          <li>
-            <i className="fas fa-brain"></i>Longest Streak
-          </li>
+          <Link to="/notifications">
+            <li>
+              <i class="fas fa-bell"></i>Notifications
+            </li>
+          </Link>
+          <Link to="/streak">
+            <li>
+              <i className="fas fa-fire"></i>Streak
+            </li>
+          </Link>
         </ul>
       </div>
       <div className="nav-item social-media">

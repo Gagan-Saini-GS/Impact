@@ -8,12 +8,14 @@ import User from "./User";
 import Founduser from "./FoundUser";
 import InviteCard from "./InviteCard";
 import ReportBug from "./ReportBug";
+import AdminPanel from "./AdminPanel";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
+import Streak from "./Streak";
 
 function App() {
   const [showFeed, setShowFeed] = useState(true);
@@ -76,7 +78,7 @@ function App() {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log(data.ans);
+        // console.log(data.ans);
         setUser(data.ans);
       });
   }
@@ -110,7 +112,28 @@ function App() {
     setCheckPendingRequest(false);
     setShowBugPage(false);
     connections = arr;
+    console.log(connections);
     setConnections(arr);
+
+    // fetch("/showConnections", {
+    //   method: "POST",
+    //   body: JSON.stringify({}),
+    //   headers: {
+    //     "Content-type": "application/json; charset=UTF-8",
+    //     accessToken: localStorage.getItem("accessToken"),
+    //   },
+    // })
+    //   .then((response) => response.json())
+    //   .then((data) => {
+    //     // console.log("Hello from api");
+    //     // console.log(data.x);
+    //     connections = data.x;
+    //     setConnections(data.x);
+    //     // props.showConnections(showConnections);
+    //   })
+    //   .catch((err) => {
+    //     console.log(err);
+    //   });
   }
 
   function showInvitations(arr) {
@@ -184,7 +207,6 @@ function App() {
               showPendingRequest={showPendingRequest}
               reportBug={reportBug}
             />
-
             <Routes>
               <Route path="/" element={<Navigate to="/feed" />} />
               <Route
@@ -194,10 +216,7 @@ function App() {
                   <Postform accessToken={accessToken} setPosts={setPosts} />,
                 ]}
               />
-              <Route
-                path="/dashboard"
-                element={<Dashboard userDetails={user} />}
-              />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route
                 path="/find-users"
                 element={
@@ -205,8 +224,6 @@ function App() {
                     <div className="found-users-container">
                       {searchedUsers.length !== 0 &&
                         searchedUsers.map((item, index) => {
-                          // console.log(searchedUsers[0]);
-                          // setCurrUser(searchedUsers[0]);
                           return (
                             <div
                               onClick={() => {
@@ -313,6 +330,26 @@ function App() {
                   </div>
                 }
               />
+              <Route
+                path="/groups"
+                element={
+                  <div className="box">
+                    <h1>No Groups feature yet! Sorry.</h1>
+                  </div>
+                }
+              />
+
+              <Route
+                path="/notifications"
+                element={
+                  <div>
+                    <h1>Notifications Page</h1>
+                  </div>
+                }
+              />
+
+              <Route path="/streak" element={<Streak />} />
+              <Route path="/admin-panel" element={<AdminPanel />} />
               <Route path="/report-bug-page" element={<ReportBug />} />
             </Routes>
 

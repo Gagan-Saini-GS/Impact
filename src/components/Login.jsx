@@ -1,5 +1,6 @@
 import React from "react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 function Login(props) {
   const [createAccount, setCreateAccount] = useState(false);
@@ -32,7 +33,6 @@ function Login(props) {
         if (accessToken !== "") {
           localStorage.setItem("accessToken", JSON.stringify(accessToken));
           props.passAccessToken(accessToken);
-          props.account();
         }
       });
   }
@@ -59,7 +59,6 @@ function Login(props) {
         if (accessToken !== "") {
           localStorage.setItem("accessToken", JSON.stringify(accessToken));
           props.passAccessToken(accessToken);
-          // props.account();
         }
       });
   }
@@ -95,20 +94,22 @@ function Login(props) {
                 className="login-password"
               />
             </div>
-            <div className="login-form-item">
-              <button
-                type="submit"
-                onClick={login}
-                // onSubmit={(event) => {
-                //   event.preventDefault();
-                //   // fetch("/login").then((data)=>{})
-                //   // props.account();
-                // }}
-                className="login-btn"
-              >
-                Login
-              </button>
-            </div>
+            <Link to="/" className="login-button-link">
+              <div className="login-form-item">
+                <button
+                  type="submit"
+                  onClick={login}
+                  // onSubmit={(event) => {
+                  //   event.preventDefault();
+                  //   // fetch("/login").then((data)=>{})
+                  //   // props.account();
+                  // }}
+                  className="login-btn"
+                >
+                  Login
+                </button>
+              </div>
+            </Link>
             <div
               className="account-switch"
               onClick={() => {
@@ -160,18 +161,20 @@ function Login(props) {
                 className="signin-password"
               />
             </div>
-            <div className="login-form-item">
-              <button
-                type="submit"
-                className="login-btn"
-                onClick={signIn}
-                // accessToken = data.accessToken;
-                // console.log(accessToken);
-                // props.account();
-              >
-                Sign-In
-              </button>
-            </div>
+            <Link to="/" className="login-button-link">
+              <div className="login-form-item">
+                <button
+                  type="submit"
+                  className="login-btn"
+                  onClick={signIn}
+                  // accessToken = data.accessToken;
+                  // console.log(accessToken);
+                  // props.account();
+                >
+                  Sign-in
+                </button>
+              </div>
+            </Link>
             <div
               className="account-switch"
               onClick={() => {

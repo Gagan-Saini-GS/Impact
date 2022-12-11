@@ -25,9 +25,11 @@ function Feed(props) {
               src={post.profileImage}
               username={post.userName}
               userintro={post.userIntro}
+              userEmail={post.userEmail}
               postContent={post.postContent}
               postSrc={post.postImgSrc}
               likes={post.likes}
+              likeMails={post.likeMails}
             />
           );
         })}
