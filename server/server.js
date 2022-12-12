@@ -19,7 +19,20 @@ app.use(
   })
 );
 
-mongoose.connect("mongodb://localhost:27017/impactDB");
+const DB =
+  "mongodb+srv://Gagan_Saini:gaganiscoder@cluster0.afqpweg.mongodb.net/Impact?retryWrites=true&w=majority";
+// mongoose.connect("mongodb://localhost:27017/impactDB");
+mongoose
+  .connect(DB)
+  .then(() => {
+    console.log("Connected Successfully");
+  })
+  .catch((err) => {
+    console.log("Not connected to database");
+  });
+
+// Dynamic Port number from Heroku
+const PORT = process.env.PORT || 5000;
 
 const postSchema = new mongoose.Schema({
   userName: String,
@@ -646,6 +659,6 @@ app.post("/addSkill", function (req, res) {
   });
 });
 
-app.listen(5000, () => {
-  console.log("Server is running at port 5000");
+app.listen(PORT, () => {
+  console.log("Server is running");
 });
