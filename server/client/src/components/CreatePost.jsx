@@ -58,13 +58,8 @@ function CreatePost(props) {
   }, []);
 
   function findEmail() {
-    // console.log("Hello");
-    // console.log(likeMails.length);
-    console.log(likeMails);
-    console.log(userEmail);
     for (let i = 0; i < likeMails.length; i++) {
       if (likeMails[i] === userEmail) {
-        // console.log(item);
         setLike(true);
         break;
       }

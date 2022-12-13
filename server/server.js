@@ -31,7 +31,6 @@ mongoose
     console.log("Not connected to database");
   });
 
-// Dynamic Port number from Heroku
 const PORT = process.env.PORT || 5000;
 
 const postSchema = new mongoose.Schema({
@@ -84,7 +83,10 @@ app.get("/getAllPosts", function (req, res) {
 });
 
 app.post("/postUpload", function (req, res) {
+  // const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
   const accessToken = JSON.parse(req.headers.accesstoken).accessToken;
+  // const accessToken = req.params.accessToken;
+  // console.log(req.params);
   let finalUser;
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN, function (err, user) {

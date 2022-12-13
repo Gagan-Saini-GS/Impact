@@ -8,10 +8,13 @@ function Feed(props) {
       .then((data) => {
         // console.log(data);
         props.setPosts(data);
+      })
+      .catch((err) => {
+        console.log(err);
       });
   }, []);
 
-  // console.log(props.allPosts);
+  // console.log("Gagan is working on it");
 
   return (
     <div className="feed-container">
